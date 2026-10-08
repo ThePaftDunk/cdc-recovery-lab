@@ -52,6 +52,18 @@ The guarantee is idempotent application by topic/partition/offset into this data
 
 Replaying the same file produces six duplicates. The fixture wrapper uses string offsets so 64-bit values survive JSON parsing. Debezium values may be schema wrapped or schema free. Supported operations: `r`, `c`, `u`, `d`, plus null tombstones. This example supports one table with string primary keys named `id`. Numeric/composite keys, schema migrations, transaction boundary events, and multiple source tables need an explicit extension.
 
+## Check target contents with reconciliation
+
+After file processing, compare the target with a fixed source export:
+
+```sh
+./scripts/sbtw 'run reconcile fixtures/expected-customers.json'
+```
+
+The report counts missing, unexpected and changed rows, with at most 20 example keys/field names per category. It contains no row bodies. A match exits 0; differences exit 2; invalid input or a failed read exits nonzero. The check uses a separate JDBC reader and performs no repair or checkpoint changes.
+
+The export must be the complete intended table state at the same boundary as a quiescent target. The first version supports at most 10,000 rows and a 16 MiB export. Numeric fields are explicitly rejected to avoid hidden floating-point comparison errors; strings, booleans, nulls, arrays and objects are supported. This command is a diagnostic for a bounded export, not a live convergence guarantee. See [the reconciliation ADR](docs/adr-reconciliation.md).
+
 ## Real PostgreSQL → Debezium → Kafka → PostgreSQL setup
 
 ```sh
@@ -77,11 +89,12 @@ Stop the Compose worker first so the host process gets the partitions. Use `KAFK
 
 ## Tests and operating limits
 
-Eight tests cover transaction rollback, persistent restart, duplicate/stale offsets, poison rollback, delete/tombstone handling, partition independence, invalid envelopes, and retention/truncation refusal. The packaged jar is also exercised by CI:
+Eight recovery tests cover transaction rollback, persistent restart, duplicate/stale offsets, poison rollback, delete/tombstone handling, partition independence, invalid envelopes, and retention/truncation refusal. Seven reconciliation tests cover drift classification, JSON comparison semantics, sample truncation, invalid inputs, JDBC non-mutation, row limits and source-file parsing. The packaged jar is also exercised by CI:
 
 ```sh
 ./scripts/sbtw assembly
 java -jar target/scala-2.13/cdc-recovery-lab.jar demo
+./scripts/test-reconciliation-cli.sh
 ```
 
 Local validation used H2 and synthetic records. The Docker Compose stack and Kubernetes manifest require execution on a Docker/cluster host; they were not run in the development environment. H2 is not a substitute for PostgreSQL integration and isolation testing.

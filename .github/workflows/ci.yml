@@ -11,3 +11,4 @@ jobs:
       - uses: sbt/setup-sbt@v1
       - run: ./scripts/sbtw test demo assembly
       - run: java -jar target/scala-2.13/cdc-recovery-lab.jar demo
+      - run: ./scripts/test-reconciliation-cli.sh

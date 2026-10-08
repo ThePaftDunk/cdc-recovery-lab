@@ -27,6 +27,13 @@ object Main {
         println(ujson.Obj("outcomes" -> ujson.Obj.from(outcomes.map { case (label, count) => label -> ujson.Str(count.toString) })).render(indent = 2))
       } finally sink.close()
     case "inspect" => val sink = configuredSink(); try println(sink.snapshot().render(indent = 2)) finally sink.close()
+    case "reconcile" =>
+      require(args.length == 2, "usage: run reconcile path/to/source-export.json")
+      val expected = Reconciliation.readExpected(Paths.get(args(1)))
+      val actual = ProjectionReader.read(sys.env.getOrElse("JDBC_URL", "jdbc:h2:file:./.data/sink;MODE=PostgreSQL"), sys.env.getOrElse("DB_USER", "sa"), sys.env.getOrElse("DB_PASSWORD", ""))
+      val report = Reconciliation.compare(expected, actual)
+      println(report.json.render(indent = 2))
+      if (!report.consistent) sys.exit(2)
     case "kafka" => kafka()
     case other => throw new IllegalArgumentException(s"unknown mode: $other")
   }
