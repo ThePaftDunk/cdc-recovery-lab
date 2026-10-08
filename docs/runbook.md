@@ -6,12 +6,13 @@
 4. If progress is increasing but lag grows, measure processing rate, database transaction time, and Kafka commit time. Do not infer a root cause from one lag snapshot.
 5. If the checkpoint is before retention or after the log end, preserve evidence and rebuild from a verified source snapshot in a separate target. Do not automatically reset offsets against a partly populated sink.
 6. Inspect quarantine provenance and repair invalid changes at new source offsets. Reusing a quarantined offset will be a duplicate.
-7. Restart and verify the target contents and checkpoint progression, then compare source and target keys. A passing readiness probe alone does not establish data correctness.
+7. Restart and verify the target contents and checkpoint progression. For a bounded fixed source export, use `reconcile` against a quiescent target and inspect missing/unexpected/changed counts. A passing readiness probe alone does not establish data correctness. Do not treat differences between unrelated live snapshots as proof of corruption.
 
 Useful local checks:
 
 ```sh
 ./scripts/sbtw 'run inspect'
+./scripts/sbtw 'run reconcile fixtures/expected-customers.json'
 curl http://localhost:8081/health/ready
 curl http://localhost:8081/metrics
 docker compose logs --tail 100 worker connect
