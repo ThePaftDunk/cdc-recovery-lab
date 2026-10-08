@@ -1,0 +1,13 @@
+name: Verify CDC recovery
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21'}
+      - uses: sbt/setup-sbt@v1
+      - run: ./scripts/sbtw test demo assembly
+      - run: java -jar target/scala-2.13/cdc-recovery-lab.jar demo

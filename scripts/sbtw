@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+cache="${PORTFOLIO_BUILD_CACHE:-${TMPDIR:-/tmp}/backend-portfolio-build}"
+mkdir -p "$cache/boot" "$cache/ivy" "$cache/global" "$cache/coursier"
+export COURSIER_CACHE="$cache/coursier"
+exec sbt -Dsbt.boot.directory="$cache/boot" -Dsbt.ivy.home="$cache/ivy" -Dsbt.global.base="$cache/global" -Dsbt.coursier.home="$cache/coursier" -Dsbt.override.build.repos=true -Dsbt.repository.config=project/repositories "$@"

@@ -1,0 +1,7 @@
+target
+project/target
+project/project
+.data
+.git
+.bsp
+.metals

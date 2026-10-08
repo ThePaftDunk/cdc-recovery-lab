@@ -1,0 +1,23 @@
+{
+  "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+  "database.hostname": "source-db",
+  "database.port": "5432",
+  "database.user": "demo",
+  "database.password": "demo",
+  "database.dbname": "app",
+  "topic.prefix": "source",
+  "plugin.name": "pgoutput",
+  "slot.name": "cdc_recovery_demo",
+  "publication.name": "cdc_recovery_publication",
+  "publication.autocreate.mode": "filtered",
+  "table.include.list": "public.customers",
+  "snapshot.mode": "initial",
+  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "key.converter.schemas.enable": "false",
+  "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "value.converter.schemas.enable": "false",
+  "transforms": "route",
+  "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+  "transforms.route.regex": "source\\.public\\.customers",
+  "transforms.route.replacement": "customers"
+}

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdc-recovery-lab
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: cdc-recovery-lab}
+  template:
+    metadata:
+      labels: {app: cdc-recovery-lab}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, fsGroup: 10001}
+      containers:
+        - name: worker
+          image: cdc-recovery-lab:1.0.0
+          ports: [{name: health, containerPort: 8081}]
+          env:
+            - {name: KAFKA_BOOTSTRAP_SERVERS, value: "kafka:9092"}
+            - {name: KAFKA_TOPIC, value: "customers"}
+            - {name: KAFKA_GROUP_ID, value: "cdc-recovery-lab"}
+            - name: JDBC_URL
+              valueFrom: {secretKeyRef: {name: cdc-sink, key: jdbc-url}}
+            - name: DB_USER
+              valueFrom: {secretKeyRef: {name: cdc-sink, key: username}}
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: cdc-sink, key: password}}
+          resources:
+            requests: {cpu: "250m", memory: "256Mi"}
+            limits: {cpu: "1", memory: "512Mi"}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts: [{name: scratch, mountPath: /app/.data}]
+          startupProbe:
+            httpGet: {path: /health/live, port: health}
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet: {path: /health/ready, port: health}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health/live, port: health}
+            periodSeconds: 10
+      volumes: [{name: scratch, emptyDir: {}}]

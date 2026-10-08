@@ -1,0 +1,6 @@
+{"topic":"customers","partition":0,"offset":"0","key":{"id":"customer-a"},"value":{"payload":{"op":"r","after":{"id":"customer-a","tier":"bronze"}}}}
+{"topic":"customers","partition":0,"offset":"1","key":{"id":"customer-a"},"value":{"payload":{"op":"u","after":{"id":"customer-a","tier":"gold"}}}}
+{"topic":"customers","partition":0,"offset":"2","key":{"id":"customer-b"},"value":{"payload":{"op":"c","after":{"id":"customer-b","tier":"silver"}}}}
+{"topic":"customers","partition":0,"offset":"3","key":{"id":"broken"},"value":{"payload":{"op":"u","after":{"tier":"missing-primary-key"}}}}
+{"topic":"customers","partition":0,"offset":"4","key":{"id":"customer-b"},"value":{"payload":{"op":"d","before":null,"after":null}}}
+{"topic":"customers","partition":0,"offset":"5","key":{"id":"customer-b"},"value":null}
