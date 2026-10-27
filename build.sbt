@@ -14,7 +14,10 @@ libraryDependencies ++= Seq(
 )
 scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-Xlint")
 Test / parallelExecution := false
+Test / run / fork := true
+Test / run / javaOptions += "-Dorg.slf4j.simpleLogger.defaultLogLevel=warn"
 addCommandAlias("demo", "run demo")
+addCommandAlias("liveCheck", ";assembly;Test / runMain portfolio.cdc.LiveRecoveryCheck")
 assembly / assemblyJarName := "cdc-recovery-lab.jar"
 assembly / assemblyMergeStrategy := {
   case path if path.endsWith("module-info.class") => MergeStrategy.discard

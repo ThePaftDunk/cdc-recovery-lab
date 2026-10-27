@@ -75,6 +75,22 @@ Stop the Compose worker first so the host process gets the partitions. Use `KAFK
 
 `docker compose down` stops the demo and preserves volumes. Removing those volumes discards the demo's database and Kafka history. Do that only when intentionally resetting the local experiment.
 
+## Run the disposable live recovery checks
+
+With Docker running, JDK 21+ and sbt installed:
+
+```sh
+./scripts/sbtw liveCheck
+# For a dedicated Colima engine:
+DOCKER_CONTEXT=colima-portfolio-lab ./scripts/sbtw liveCheck
+```
+
+The Scala runner builds the worker jar, creates an isolated network and four owned containers, and uses generated database credentials with synthetic customer data. PostgreSQL 16.6, Kafka 4.0.2 and Debezium Connect 3.0 are pinned by image digest. Host ports bind to loopback and are selected for the run; no host filesystem mounts or existing demo volumes are used.
+
+Eight live checks cover actual Debezium snapshot/WAL delivery, PostgreSQL rollback, a committed sink record without Kafka acknowledgement, packaged-worker restart, insert/update/delete convergence, poison quarantine and later progress, stale group-offset recovery, and retained-log refusal. The runner compares source/target rows through independent SQL reads and checks Kafka acknowledgements separately. A JSON result is written to `target/live-cdc-report.json`. Containers, anonymous volumes, network and temporary files are removed after completion or a test failure; downloaded image layers remain cached. The runner does not start or stop a Docker VM itself.
+
+GitHub Actions repeats the live check with JDK 21 and uploads the report. See [the integration decision](docs/adr-live-recovery.md) and [the observed experiment](docs/development-2026-10-27.md) for the constructed acknowledgement gap and remaining limits.
+
 ## Tests and operating limits
 
 Eight tests cover transaction rollback, persistent restart, duplicate/stale offsets, poison rollback, delete/tombstone handling, partition independence, invalid envelopes, and retention/truncation refusal. The packaged jar is also exercised by CI:
@@ -84,7 +100,7 @@ Eight tests cover transaction rollback, persistent restart, duplicate/stale offs
 java -jar target/scala-2.13/cdc-recovery-lab.jar demo
 ```
 
-Local validation used H2 and synthetic records. The Docker Compose stack and Kubernetes manifest require execution on a Docker/cluster host; they were not run in the development environment. H2 is not a substitute for PostgreSQL integration and isolation testing.
+The default tests use H2 and synthetic records. The separate Scala live runner passes eight checks against real PostgreSQL, Debezium and Kafka, including the actual assembled worker in fresh JVMs. The runner reuses the connector configuration and source SQL. The Compose bundle itself, worker Docker image build, Kubernetes rollout, multiple workers and ownership fencing remain separate validation work. These small recovery checks establish behavior in the tested setup; they do not establish production capacity or an SLO.
 
 Scale is deliberately conservative: one in-flight transaction per process, one connection, per-record acknowledgement. Increase concurrency only while preserving per-partition order and introduce partition ownership fencing before distributing write execution. Keep an entity on the same partition; changing partition counts or reusing a topic name requires a migration/lineage strategy. Quarantine retains raw records and needs access control and retention policy. Fixing a quarantined record requires an audited repair at a new offset or a snapshot rebuild; replaying its old offset is intentionally skipped.
 
